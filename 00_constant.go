@@ -11,7 +11,7 @@ type WorkflowErr struct {
 }
 
 func (e *WorkflowErr) Error() string {
-	return fmt.Sprintf("code: %d, msg: %s, desc: %s", e.code, e.msg, e.desc)
+	return fmt.Sprintf("{code: %d, msg: \"%s\", desc: \"%s\"}", e.code, e.msg, e.desc)
 }
 
 func (e *WorkflowErr) WithDesc(desc string) *WorkflowErr {

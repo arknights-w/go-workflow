@@ -17,7 +17,7 @@ func NewBuilder[nt nameType](stages ...Stage[nt]) (*WorkflowBuilder[nt], error) 
 	}
 	for _, stage := range stages {
 		if _, ok := workflow.stages[stage.Name()]; ok {
-			return nil, ErrDupStage
+			return nil, ErrDupStage.WithDesc(fmt.Sprintf("duplicate stage: %v", stage.Name()))
 		}
 		workflow.stages[stage.Name()] = stage
 	}
@@ -26,7 +26,7 @@ func NewBuilder[nt nameType](stages ...Stage[nt]) (*WorkflowBuilder[nt], error) 
 
 func (b *WorkflowBuilder[nt]) AddStage(stage Stage[nt]) error {
 	if _, ok := b.stages[stage.Name()]; ok {
-		return ErrDupStage
+		return ErrDupStage.WithDesc(fmt.Sprintf("duplicate stage: %v", stage.Name()))
 	}
 	b.stages[stage.Name()] = stage
 	return nil
@@ -37,6 +37,10 @@ func (b *WorkflowBuilder[nt]) Build() (Workflow[nt], error) {
 	edges := make(map[nt][]nt)
 	for _, stage := range b.stages {
 		for _, dep := range stage.DependOn() {
+			// 检查依赖的阶段是否存在
+			if _, ok := b.stages[dep]; !ok {
+				return nil, ErrNoStage.WithDesc(fmt.Sprintf("no stage: %v", dep))
+			}
 			edges[dep] = append(edges[dep], stage.Name())
 		}
 	}
@@ -61,15 +65,17 @@ func (b *WorkflowBuilder[nt]) Build() (Workflow[nt], error) {
 }
 
 type workflow[nt nameType] struct {
-	stages []Stage[nt]
+	stages     []Stage[nt]
 }
 
-func (w *workflow[nt]) Work(ctx context.Context) {
+func (w *workflow[nt]) Work(ctx context.Context) (err error) {
+	context := NewContext(ctx)
 	for _, stage := range w.stages {
-		if !stage.Run(ctx) {
+		if err = stage.Run(context); err != nil {
 			return
 		}
 	}
+	return
 }
 
 func (w *workflow[nt]) GetStage(name nt) Stage[nt] {

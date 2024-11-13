@@ -15,35 +15,39 @@ const (
 	Create
 	Update
 	Delete
+	None
 )
 
 func TestSuccess(t *testing.T) {
 	var (
-		init = wf.NewStage(Init, func(ctx context.Context) bool {
+		init = wf.NewStage(Init, func(ctx wf.Context) error {
 			println("this is Init")
-			return true
+			ctx.Set(Init, "success")
+			return nil
 		})
 		create = wf.NewStage(
 			Create,
-			func(ctx context.Context) bool {
-				println("this is Create")
-				return true
+			func(ctx wf.Context) error {
+				fmt.Printf("this is Create, Init stage is %v, Update stage still is %v\n", ctx.Get(Init), ctx.Get(Update))
+				ctx.Set(Create, "success")
+				return nil
 			},
 			wf.WithDependOn([]WorkType{Init}),
 		)
 		update = wf.NewStage(
 			Update,
-			func(ctx context.Context) bool {
-				println("this is Update")
-				return true
+			func(ctx wf.Context) error {
+				fmt.Printf("this is Update, Create stage is %v\n", ctx.Get(Create))
+				ctx.Child().Set(Update, "success")
+				return nil
 			},
 			wf.WithDependOn([]WorkType{Create}),
 		)
 		delete = wf.NewStage(
 			Delete,
-			func(ctx context.Context) bool {
-				println("this is Delete")
-				return true
+			func(ctx wf.Context) error {
+				fmt.Printf("this is Delete, can not get Update stage: %v\n", ctx.Get(Update))
+				return nil
 			},
 			wf.WithDependOn([]WorkType{Update}),
 		)
@@ -65,27 +69,58 @@ func TestDuplicate(t *testing.T) {
 	var (
 		init = wf.NewStage(
 			Init,
-			func(ctx context.Context) bool {
+			func(ctx wf.Context) error {
 				println("this is Init")
-				return true
+				return nil
 			},
 		)
 		init2 = wf.NewStage(
 			Init,
-			func(ctx context.Context) bool {
+			func(ctx wf.Context) error {
 				println("this is Init2")
-				return true
+				return nil
 			},
 		)
 	)
 	builder, err := wf.NewBuilder(init, init2)
 	if err != nil {
-		fmt.Printf("1 err: %v\n", err)
+		t.Fatalf("NewBuilder err: %v\n", err)
 		return
 	}
 	workflow, err := builder.Build()
 	if err != nil {
-		fmt.Printf("2 err: %v\n", err)
+		t.Fatalf("Build err: %v\n", err)
+		return
+	}
+	workflow.Work(context.Background())
+}
+
+func TestNoStage(t *testing.T) {
+	var (
+		init = wf.NewStage(
+			Init,
+			func(ctx wf.Context) error {
+				println("this is Init")
+				return nil
+			},
+		)
+		init2 = wf.NewStage(
+			Create,
+			func(ctx wf.Context) error {
+				println("this is Init2")
+				return nil
+			},
+			wf.WithDependOn([]WorkType{Init, None}),
+		)
+	)
+	builder, err := wf.NewBuilder(init, init2)
+	if err != nil {
+		t.Fatalf("NewBuilder err: %v\n", err)
+		return
+	}
+	workflow, err := builder.Build()
+	if err != nil {
+		t.Fatalf("Build err: %v\n", err)
 		return
 	}
 	workflow.Work(context.Background())
@@ -93,31 +128,31 @@ func TestDuplicate(t *testing.T) {
 
 func TestCircular(t *testing.T) {
 	var (
-		init = wf.NewStage(Init, func(ctx context.Context) bool {
+		init = wf.NewStage(Init, func(ctx wf.Context) error {
 			println("this is Init")
-			return true
+			return nil
 		})
 		create = wf.NewStage(
 			Create,
-			func(ctx context.Context) bool {
+			func(ctx wf.Context) error {
 				println("this is Create")
-				return true
+				return nil
 			},
 			wf.WithDependOn([]WorkType{Init}),
 		)
 		update = wf.NewStage(
 			Update,
-			func(ctx context.Context) bool {
+			func(ctx wf.Context) error {
 				println("this is Update")
-				return true
+				return nil
 			},
 			wf.WithDependOn([]WorkType{Create, Delete}),
 		)
 		delete = wf.NewStage(
 			Delete,
-			func(ctx context.Context) bool {
+			func(ctx wf.Context) error {
 				println("this is Delete")
-				return true
+				return nil
 			},
 			wf.WithDependOn([]WorkType{Update}),
 		)

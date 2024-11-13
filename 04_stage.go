@@ -1,12 +1,10 @@
 package go_workflow
 
-import "context"
-
 type stage[nt nameType] struct {
 	name nt
 	deps []nt
 	desc string
-	run  func(ctx context.Context) bool
+	run  func(ctx Context) error
 }
 
 func (s *stage[nt]) Name() nt {
@@ -21,14 +19,15 @@ func (s *stage[nt]) Desc() string {
 	return s.desc
 }
 
-func (s *stage[nt]) Run(ctx context.Context) bool {
+func (s *stage[nt]) Run(ctx Context) error {
 	return s.run(ctx)
 }
 
 func NewStage[nt nameType](
 	name nt,
-	run func(ctx context.Context) bool,
-	opts ...stageOpt[nt]) Stage[nt] {
+	run func(ctx Context) error,
+	opts ...stageOpt[nt],
+) Stage[nt] {
 	one := &stage[nt]{
 		name: name,
 		run:  run,

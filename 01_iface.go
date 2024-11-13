@@ -5,6 +5,12 @@ import "context"
 // nameType 是一个可比较的类型，用于定义工作流和阶段的名称。
 type nameType = comparable
 
+type Context interface {
+	Get(key any) any
+	Set(key, value any)
+	Child() Context
+}
+
 /**
  * Workflow 接口定义了一个工作流，它包含了一个工作方法和获取阶段的方法。
  *
@@ -12,7 +18,7 @@ type nameType = comparable
  */
 type Workflow[nt nameType] interface {
 	// Work 方法执行工作流的主要逻辑。
-	Work(ctx context.Context)
+	Work(ctx context.Context) error
 
 	// GetStage 方法根据名称获取工作流中的某个阶段。
 	GetStage(nt) Stage[nt]
@@ -34,5 +40,5 @@ type Stage[nt nameType] interface {
 	Desc() string
 
 	// Run 方法执行当前阶段的逻辑，并返回是否继续执行下一个阶段。
-	Run(ctx context.Context) (isContinue bool)
+	Run(ctx Context) error
 }
