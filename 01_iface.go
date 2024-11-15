@@ -5,9 +5,17 @@ import "context"
 // nameType 是一个可比较的类型，用于定义工作流和阶段的名称。
 type nameType = comparable
 
+/**
+ * Context 接口定义了一个上下文对象，用于在工作流执行过程中传递和存储数据。
+ */
 type Context interface {
+	// Get 方法根据键获取上下文中存储的值。
 	Get(key any) any
+
+	// Set 方法设置上下文中指定键的值。
 	Set(key, value any)
+
+	// Child 方法创建一个新的子上下文对象。
 	Child() Context
 }
 
@@ -22,6 +30,9 @@ type Workflow[nt nameType] interface {
 
 	// GetStage 方法根据名称获取工作流中的某个阶段。
 	GetStage(nt) Stage[nt]
+
+	// Print 方法将工作流的执行结果以图形化的方式输出到文件中。
+	Print(path string, name string) error
 }
 
 /**

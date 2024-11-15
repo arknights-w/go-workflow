@@ -1,6 +1,8 @@
 package tools
 
-import "slices"
+import (
+	"slices"
+)
 
 func TopologicalSort[T comparable](edges map[T][]T) (sorted []T, cycle []T) {
 	// 1. 构建入度表
